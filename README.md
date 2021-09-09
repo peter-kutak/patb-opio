@@ -1,14 +1,10 @@
-% OPIO(1) opio v1.0
-% Pat Beirne <patb@pbeirne.com>
-% Aug 2021
-
 # NAME
 opio - Control GPIO pins on OrangePi. A replacement for WiringPi
 
 # SYNOPSIS
-**opio** [-2] readall
+**opio** [-2] readall {or status} 
 
-**opio** [-2] readallx
+**opio** [-2] readallx {or statusx}
 
 **opio** [-2] exports
 
@@ -29,22 +25,22 @@ opio - Control GPIO pins on OrangePi. A replacement for WiringPi
 Running **opio** without any parameters will show its usage. **opio** requires 'su' permissions, so must be run as 'root' or via 'sudo'.
 
 # COMMANDS
-**readall** 
+**readall** or **status**
 : Displays the state of the gpio pins in a grid format. The list includes all the pins used in the on-board 40 pin connector. For each pin, the listing shows the gpio pin number, its alternate function, its i96 pin name, its current _mode_ and _value_, and the corresponding pin number on the 40 pin connector.
 
-**readallx** 
-: Creates a similar chart, but includes the RDA pin names. 
+**readallx** or **statusx**
+: Creates a similar chart, but includes the RDA pin names and Linux device driver names. 
 
 **leds** 
 : Creates a smaller chart, for the interesting I/O pins which are _not_ part of the 40 pin connector. On the i96 board, there are 3 LEDs which can be controlled via **opio**
 
 **exports**
-: Print a list of entries in /sys/class/gpio, indicating which pins have been exported (prepared for read/write). If a gpio pin exists on the 40 pin connector, the pin number is listed.
+: Print a list of current entries in /sys/class/gpio, indicating which pins have been exported (prepared for read/write). If a gpio pin exists on the 40 pin connector, the pin number is listed.
 
 **mode**
 : Sets the _mode_ for a pin as either 'in', 'out' or 'alternate-function'. Normally **opio** will create an export for this gpio pin, and then set the direction. If you set the 'alt' function, the export will be removed. With the **-d** option, the export is not created, but the 'in'/'out'/'alt' _mode_ setting will still be done.
 
-: **mode** with a pin number and no set-mode request, will simply return the current _mode_ (in, out, alt, in\*, alt\*).
+- **mode** with a pin number and no set-mode request, will simply return the current _mode_ (in, out, alt, in\*, alt\*).
 
 **read**
 : Returns the current _value_ (1/0) of the gpio pin, if possible. If the pin is in 'alt' _mode_, it is changed to 'in' before the _value_ is read.
@@ -91,7 +87,7 @@ If you wish to bypass the Linux gpio driver, add the `-d` option to the **opio**
 
 The commands **readall, readallx** and **leds** are always done using _low level_ access. The **exports** command is always done with _high level_ commands.
 
-Be careful about making changed with the **-d** option. Some linux gpio drivers will direction and value, so changes you make with the **-d** option may not be reflected in the export folder.
+Be careful about making changed with the **-d** option. Some linux gpio drivers will cache the direction and value, so changes you make with the **-d** option may not be reflected in the export folder.
 
 # EXAMPLES
 
