@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# TODO: add board detection /var/local (but check /etc and /usr/local/etc as well)
+# TODO: add 'out' and 'in' as almost-synonyms for 'write' and 'read'
 """
   This is a clone of the 'gpio/WiringPi' project, written specifically for the
   OrangePi i96.
@@ -53,19 +53,20 @@ from mmap import mmap
 from struct import pack, unpack
 import os, sys, argparse, pathlib, re, logging
 
-
+VERSION = "2.1"
 
 ############ board specific
 
 class Board:
-  def __init__(self,full_name,short_name):
+  def __init__(self,full_name,short_name,config_file):
     self.name = full_name
     self.short_name = short_name
+    self.config_file = config_file
   def __repr__(self):
     return self.name
 
-board_i96 = Board("OrangePi i96",  "OrangePi i96")
-board_2g = Board("OrangePi 2G-IOT","OrgPi 2G-iot")
+board_i96 = Board("OrangePi i96",  "OrangePi i96", "/etc/OrangePi-i96")
+board_2g = Board("OrangePi 2G-IOT","OrgPi 2G-iot", "/etc/OrangePi-2g-iot")
 
 # pins, arranged according to i96 connector
 # i96 label, rda_port number, pio number, rda special function
@@ -225,8 +226,6 @@ cpu_rda = Cpu("RDA8810")
 cpu_rda.IOMUX_ADDRESSES = (RDA_PORTA_IOMUX, RDA_PORTB_IOMUX, RDA_PORTD_IOMUX, RDA_PORTC_IOMUX)
 
 cpu = cpu_rda
-board = board_i96
-#board = board_2g
 
 GPIO_PER_PORT = 32
 
@@ -248,11 +247,10 @@ def mem_set(address, bitmask, value):
       data = unpack("<L",mem[address:address+4])[0] 
       logging.debug("mem_set: current data is {} mask is {} value is {}".format(hex(data),hex(bitmask),value))
       if value:
-        logging.debug("!! wtf? value is {} {} {}".format(value,bool(value),type(value)))
         data |= bitmask
       else:
         data &= ~bitmask
-      logging.debug("mem_set: resulting data is {} ~mask is {} {}".format(hex(data),hex(~bitmask),hex(data & ~bitmask)))
+      logging.debug("mem_set: resulting data is {}".format(hex(data)))
       mem[address:address+4] = pack("<L",data)
   except PermissionError:
     print("failed to open /dev/mem.....you must execute this script as root")
@@ -381,7 +379,7 @@ PORTC_IOBASE = 0x11a08000
 PORTD_IOBASE = 0x20932000
 IOBASE_ADDRESSES = (PORTA_IOBASE, PORTB_IOBASE, PORTD_IOBASE, PORTC_IOBASE)
 
-IO_DIR = 0   # [0=out,1=in] +0 direct access, +4 for the clr-reg, +8 for the set-reg 
+IO_DIR = 0   # [0=out,1=in] +0 direct access, +4 = clr-reg(out), +8 = set-reg(in) 
 IO_DATA = 0xc # +0 direct access, +4 for set-reg, +8 for clr-reg
 
 def low_level_read(gpio, address_offset):
@@ -407,6 +405,22 @@ def low_level_set_mode(gpio, mode):
 def low_level_get_mode(gpio):
   return low_level_read(gpio, IO_DIR)  
 
+######################### detect board ###################
+# the 2gio has the B3 pin pulled up
+# the i96 board leaves the B3 pin floating
+B3 = 35
+def board_auto_sense():
+  low_level_set_mode(B3, "out")
+  low_level_write(B3, IO_DATA, 1)
+  low_level_set_mode(B3, "in")
+  a = low_level_read(B3, IO_DATA)
+  low_level_set_mode(B3, "out")
+  low_level_write(B3, IO_DATA, 0)
+  low_level_set_mode(B3, "in")
+  b = low_level_read(B3, IO_DATA)
+  board = board_2g if b else board_i96
+  print("Board auto-detect found {}. To skip auto-detect, create a file named {}".format(board.short_name,board.config_file))
+  return board
 
 ########################### actions #######################
 
@@ -559,19 +573,23 @@ args = None
 if __name__ == "__main__":
   #logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
   #logging.basicConfig(stream=sys.stderr, level=logging.INFO)
-  parser = argparse.ArgumentParser()
-  parser.add_argument('-v','--version', action='version', version='gpio 2.0\n   python rewrite by Pat Beirne')
+  parser = argparse.ArgumentParser(description = "Access GPIO on the OrangePi RDA boards")
+  parser.add_argument('-v','--version', action='version', 
+   version="opio "+VERSION+" -- python rewrite of gpio; by Pat Beirne")
   parser.add_argument('cmd',help="one of: read, write, mode, readall, readallx")
   parser.add_argument('gpio',nargs='?',type=int,help="gpio number 0...126")
   parser.add_argument('extra',nargs='?')
   parser.add_argument('-d',"--direct",help="use low-level access",action="store_true")
-  parser.add_argument('-2',"--op2giot",help="configure for OrangePi 2G-iot",action="store_true")
+  parser.add_argument('-2',"--op2giot",help="configure for OrangePi 2G-iot [disable auto-detect]",action="store_true")
+  parser.add_argument('-9',"--i96",help="configure for OrangePi i96 [disable auto-detect]",action="store_true")
   args = parser.parse_args()
 
-  if pathlib.Path('/etc/OrangePi_2G_IOT').exists():
+  if pathlib.Path(board_2g.config_file).exists() or args.op2giot:
     board = board_2g
-  if args.op2giot:
-    board = board_2g
+  elif pathlib.Path(board_i96.config_file).exists() or args.i96:
+    board = board_i96
+  else:
+    board = board_auto_sense()
  
   switcher = {"readall":do_readall, 
          "readallx":do_readallx,
