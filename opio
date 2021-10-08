@@ -584,12 +584,13 @@ if __name__ == "__main__":
   parser.add_argument('-9',"--i96",help="configure for OrangePi i96 [disable auto-detect]",action="store_true")
   args = parser.parse_args()
 
-  if pathlib.Path(board_2g.config_file).exists() or args.op2giot:
-    board = board_2g
-  elif pathlib.Path(board_i96.config_file).exists() or args.i96:
-    board = board_i96
-  else:
-    board = board_auto_sense()
+  if args.cmd in {"readll","readallx","status","statusx","leds","exports"}:
+    if pathlib.Path(board_2g.config_file).exists() or args.op2giot:
+      board = board_2g
+    elif pathlib.Path(board_i96.config_file).exists() or args.i96:
+      board = board_i96
+    else:
+      board = board_auto_sense()
  
   switcher = {"readall":do_readall, 
          "readallx":do_readallx,
