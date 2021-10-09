@@ -6,13 +6,13 @@
 opio - Control GPIO pins on OrangePi. A replacement for WiringPi
 
 # SYNOPSIS
-**opio** [-2] readall {or status} 
+**opio** [-2 | -9] readall {or status} 
 
-**opio** [-2] readallx {or statusx}
+**opio** [-2 | -9] readallx {or statusx}
 
-**opio** [-2] exports
+**opio** [-2 | -9] exports
 
-**opio** leds
+**opio** [-2 | -9] leds
 
 **opio** mode *pin* [ in | out | alt ]
 
@@ -57,7 +57,10 @@ Running **opio** without any parameters will show its usage. **opio** requires '
 : Use low-level access to control the pins. Without the **-d** option, **opio** tries to use the 'export' gpio mechanism (at /sys/class/gpio). The **-d** option only applies to **mode, read** and **write**
 
 **-2**
-: Use the pin assignments for the OrangePi-2G-iot. The default is to use the pins for the OrangePi-i96. If you wish to make this option persistent, create a file named /etc/OrangePi_2G_IOT.
+: Use the pin assignments for the OrangePi-2G-iot. If you wish to make this option persistent, create a file named /etc/OrangePi-2g-iot. 
+
+**-9**
+: Use the pin assignments for the OrangePi-i96. If you wish to make this option persistent, create a file named /etc/OrangePi-i96. In the absence of the *-9* and *-2* option, the program will attempt to auto-detect the board version.
 
 ## Mode
 The microcontroller used on these boards presents i/o pins which can be set to 'general usage' GPIO as 'input' or 'output, or alternatively, set to operate in a specific way (uart, i2c, i2s, pcm, etc). **opio** refers the the current _mode_ of each pin one of these: either GPIO 'in', GPIO 'out', or 'alt'ernate function. 
@@ -127,4 +130,4 @@ write to gpio15 pin, bypassing the export mechanism
 
 **NOTE** The 2G-IOT board uses the I2C3 bus to communicate with the LCD. If you are using an LCD in the socket, do _not_ change the mode on pins 38 & 40.
 
-**NOTE** To create a man page, run `pandoc README.md -s -t man -o opio.1`
+**NOTE** To create a man page, run `pandoc README.md -s -t man -o opio.1` For local usage, you can run `pandoc README.md -s --css pandoc.css -o opio.html` 
